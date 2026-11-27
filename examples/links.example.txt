@@ -1,0 +1,5 @@
+# from_kind:key | link_type | to_kind:key
+# link_type: writes, reads, backs_up, lands_in. (mounts and on_filesystem are detected automatically.)
+job:crontab:alice:*      | writes   | folder:/srv/backups
+backup:nightly           | backs_up | folder:/srv/photos
+backup:nightly           | lands_in | folder:/mnt/offsite

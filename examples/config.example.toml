@@ -1,0 +1,58 @@
+# THE INDEX config. Copy to ~/.config/the-index/config.toml. Every key is optional.
+
+[paths]
+# db_path = "~/.local/share/the-index/index.db"
+# pages_dir = "~/.local/state/the-index/pages"
+# pages_on_scan = true       # write the pages after every scan (false = only `the-index pages`)
+# purposes_file = "~/.config/the-index/purposes.txt"
+# links_file = "~/.config/the-index/links.txt"
+
+[device]
+# name = "host-a"          # default: this machine's hostname
+# role = "server"
+
+[schedule]
+collectors = ["folders", "jobs", "containers", "filesystems", "backups"]
+# pre_run_gate = "/usr/local/bin/ok_to_run"   # non-zero exit = skip this run (recorded as skipped)
+# blackout = ["02:30-04:45"]                  # local time; runs inside a window are skipped
+
+[serve]
+# port = 8765                  # `the-index serve` on 127.0.0.1; --port overrides
+
+[folders]
+roots =["/home", "/srv", "/opt", "/var/lib"]   # every folder down to `depth` under these gets an item
+depth = 2
+slots = 7                     # sizes/content: each top-level folder is measured once every 7 nights
+# exclude = ["/var/lib/docker"]
+# sudo = true                 # after contrib/install_folder_scanner.sh: measure folders this user cannot read
+# sudo_python = "/usr/bin/python3"
+# script = "/usr/local/lib/the-index/folders.py"
+
+[rules]
+emergency_after = "3d"        # a backup older than this is an emergency
+size_drop_suspicious = 0.5    # a backup that shrinks by half is suspicious
+mixed_threshold = 0.6         # below this byte share, folder content is "mixed"
+fs_warn_pct = 85              # filesystem fullness that counts as a warning
+fs_emergency_pct = 95         # ... and as an emergency
+
+# Backup checks (commented out: enable and edit the ones you have). One [[backups]] table per backup set. Types: file_age, log_pattern, command.
+# [[backups]]
+# name = "database dumps"
+# type = "file_age"
+# path = "/srv/backups/db/*.dump"     # glob; the newest file >= min_bytes is the newest good copy
+# min_bytes = 1024
+# max_age = "1d"
+# sources = ["/var/lib/app-db"]       # folders this backup copies (backs_up links)
+# destination = "/srv/backups/db"     # where copies land (lands_in link)
+
+# [[backups]]
+# name = "offsite sync"
+# type = "log_pattern"
+# path = "/var/log/offsite.log"
+# success = '^(?P<when>\S+) sync complete'   # optional (?P<when>ISO time); else the log's mtime
+# max_age = "2d"
+
+# [[backups]]
+# name = "snapshot tool"
+# type = "command"
+# command = "/usr/local/bin/check-snapshots --quiet"   # exit 0 = a good copy as of now

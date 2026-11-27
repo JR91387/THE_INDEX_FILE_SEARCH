@@ -1,0 +1,43 @@
+# Builds the Windows bundle (embeddable Python + THE INDEX) and smoke-tests it.
+name: windows
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+jobs:
+  bundle:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build bundle (hash-checked download from python.org)
+        run: python tools/build_windows.py --download 3.12.8 --out dist
+      - name: Unpack and smoke-test
+        shell: cmd
+        run: |
+          mkdir %RUNNER_TEMP%\unz
+          tar -xf dist\the-index-windows.zip -C %RUNNER_TEMP%\unz
+          %RUNNER_TEMP%\unz\the-index-windows\the-index.cmd --help
+          %RUNNER_TEMP%\unz\the-index-windows\the-index.cmd --db %RUNNER_TEMP%\t.db describe --json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: the-index-windows
+          path: dist/the-index-windows.zip
+
+  # Sketch: a true single-file .exe with PyInstaller. NOT enabled: PyInstaller is GPL-2.0 with a bootloader
+  # exception, not permissively licensed. Needs an explicit decision before use.
+  # exe:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.12"
+  #     - run: pip install pyinstaller
+  #     - run: pyinstaller --onefile --name the-index --paths src --add-data "src/theindex;theindex" src/theindex/__main__.py
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: the-index-exe
+  #         path: dist/the-index.exe

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE INDEX</title>
+<style>
+:root{--bg:#fff;--fg:#1d2126;--mute:#5f6975;--line:#d9dde2;--card:#f5f6f8;--bad:#b3261e;--warn:#8a5a00;--ok:#2d6a3e;--link:#1a56a0}
+@media (prefers-color-scheme:dark){:root{--bg:#15181c;--fg:#e3e6ea;--mute:#98a2ad;--line:#2d333a;--card:#1d2127;--bad:#ff8a80;--warn:#e6b450;--ok:#7fcf94;--link:#8ab4f0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--link)}
+header{padding:12px 16px 4px;max-width:1200px;margin:0 auto}
+h1{font-size:1.3rem;margin:0 0 2px}
+h2{font-size:1.05rem;margin:0}
+.mute{color:var(--mute)}
+.bar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
+.bar>div{max-width:1200px;margin:0 auto;padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.bar input{flex:1 1 220px;min-width:0;padding:7px 10px;font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px}
+nav{display:flex;flex-wrap:wrap;gap:4px 12px}
+nav a{white-space:nowrap}
+main{max-width:1200px;margin:0 auto;padding:0 16px 48px}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:12px 0 4px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;gap:8px}
+.fact b{font-variant-numeric:tabular-nums}
+.fact.bad b{color:var(--bad)}.fact.warn b{color:var(--warn)}
+section{margin-top:24px}
+.sh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--card);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td{overflow-wrap:break-word;min-width:6ch;max-width:48ch}
+td.num{text-align:right;white-space:nowrap}
+td.nw{white-space:nowrap}
+.ic{display:inline-flex;vertical-align:-3px;margin-right:4px}
+.ic svg{width:16px;height:16px}
+.bad{color:var(--bad)}.warn{color:var(--warn)}.ok{color:var(--ok)}
+button{font:inherit;font-size:.85rem;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+.empty{padding:8px 0}
+footer{max-width:1200px;margin:0 auto;padding:0 16px 24px}
+.rv input{font:inherit;font-size:.85rem;width:12ch;padding:2px 6px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="bar"><div>
+<input id="q" type="search" placeholder="Search everything" aria-label="Search everything" autocomplete="off">
+<span id="hits" class="mute"></span>
+<nav id="nav"></nav>
+</div></div>
+<header><h1>THE INDEX</h1><div id="last" class="mute"></div></header>
+<main><div id="facts" class="facts"></div><div id="secs"></div></main>
+<footer id="foot" class="mute"></footer>
+<script type="application/json" id="data">/*THE_INDEX_DATA*/</script>
+<script>
+(function () {
+"use strict";
+var D = JSON.parse(document.getElementById("data").textContent);
+var M = D.model, ICONS = D.icons;
+function size(n) {
+  if (n === null || n === undefined) return "";
+  var u = ["B", "KB", "MB", "GB", "TB"], i = 0;
+  n = Number(n);
+  while (n >= 1024 && i < 4) { n /= 1024; i++; }
+  return i === 0 ? n.toFixed(0) + " B" : n.toFixed(1) + " " + u[i];
+}
+function pct(v) { return v === null || v === undefined ? "" : v + "%"; }
+var HEALTH = { emergency: "bad", warn: "warn", suspicious: "bad", unreviewed: "warn", ok: "ok" };
+/* column: [header, getter, icon table or "", css class] */
+var SECTIONS = [
+  { id: "folders", title: "Folders", nav: "Folders", kind: "folder", rows: M.folders, more: M.folders_more || 0, cols: [
+    ["device", "device"], ["path", "key"], ["content", "primary_content"], ["purpose", "purpose"],
+    ["criticality", "criticality"], ["size", function (r) { return size(r.size_bytes); }, "", "num"],
+    ["files", "file_count", "", "num"]], purpose: "purpose" },
+  { id: "jobs", title: "Jobs", nav: "Jobs", kind: "job", rows: M.jobs.items, cols: [
+    ["device", "device"], ["job", "key"], ["schedule", "schedule"], ["run as", "run_as"], ["command", "command"]] },
+  { id: "collisions", title: "Same-minute job collisions", nav: "Collisions", kind: "job collision", rows: M.jobs.collisions, cols: [
+    ["device", "device"], ["minute", "minute"], ["jobs", "jobs", "", "num"], ["which", "keys"]] },
+  { id: "containers", title: "Containers", nav: "Containers", kind: "container", rows: M.containers.items, cols: [
+    ["device", "device"], ["container", "key"], ["image", "image"], ["state", "state"],
+    ["problem", function (r) { return r.down ? "down (expected " + r.expected + ")" : ""; }, "", "bad"]] },
+  { id: "filesystems", title: "Filesystems", nav: "Filesystems", kind: "filesystem", rows: M.filesystems, cols: [
+    ["device", "device"], ["mount", "key"], ["type", "fstype"], ["size", function (r) { return size(r.size_bytes); }, "", "num"],
+    ["used", function (r) { return size(r.used_bytes); }, "", "num"], ["used %", function (r) { return pct(r.used_pct); }, "", "num"],
+    ["health", "health", "health"]] },
+  { id: "backups", title: "Backups", nav: "Backups", kind: "backup", rows: M.backups, cols: [
+    ["device", "device"], ["backup", "key"], ["health", "health", "health"],
+    ["newest good copy", function (r) { return r.newest_good_at || "never"; }, "", "nw"],
+    ["max age (s)", "max_age_s", "", "num"]] },
+  { id: "changes", title: "Open changes", nav: "Changes", kind: "change", rows: M.changes, cols: [
+    ["id", "id", "", "num"], ["class", "class", "change_class"], ["action", "action"], ["device", "device"], ["key", "key"],
+    ["reason", "reason"], ["seen", "started_at", "", "nw"]] },
+  { id: "gaps", title: "Blind spots", nav: "Gaps", kind: "gap", rows: M.gaps, cols: [
+    ["device", function (r) { return r.device || "*"; }], ["kind", "kind", "gap_kind"], ["target", "target"],
+    ["reason", "reason"], ["since", "since", "", "nw"]] }
+];
+var FACTS = [
+  ["scan_stale", "Scan out of date (no OK run in 2 days)", "bad"],
+  ["backups_emergency", "Backups past emergency age", "bad"], ["backups_warn", "Backups past max age", "warn"],
+  ["changes_suspicious", "Suspicious changes open", "bad"], ["changes_unreviewed", "Unreviewed changes open", "warn"],
+  ["changes_24h", "Changes in last 24h"], ["runs_bad_24h", "Bad runs in last 24h", "bad"],
+  ["runs_skipped_24h", "Skipped runs in last 24h", "warn"], ["containers_stopped", "Containers stopped that were running", "warn"],
+  ["containers_down", "Containers down that should run", "bad"], ["filesystems_full", "Filesystems nearly full", "warn"],
+  ["folders_no_purpose", "Folders with no known purpose"], ["unbacked_irreplaceable", "Irreplaceable without backup", "bad"],
+  ["gaps_open", "Blind spots", "warn"]
+];
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function icon(table, code) {
+  var i = ICONS[table] && ICONS[table][code], s = el("span", "ic");
+  if (!i) return null;
+  if (i.svg) { s.innerHTML = i.svg; s.setAttribute("aria-hidden", "true"); } else if (i.emoji) s.textContent = i.emoji;
+  else return null;
+  return s;
+}
+function val(r, c) {
+  var v = typeof c[1] === "function" ? c[1](r) : r[c[1]];
+  return v === null || v === undefined ? "" : String(v);
+}
+function openChanges(r) {
+  if (!r.key || !r.device) return [];
+  return M.changes.filter(function (c) { return c.device === r.device && c.key === r.key && c !== r; });
+}
+function mdBlock(s, r) {
+  var out = ["## " + s.title + ": " + (r.key || r.target || r.minute || "")];
+  out.push("- section: " + s.id, "- kind: " + s.kind);
+  if (r.device) out.push("- device: " + r.device);
+  if (r.key) out.push("- key: " + r.key);
+  s.cols.forEach(function (c) {
+    var v = val(r, c);
+    if (v !== "" && c[0] !== "device" && c[0] !== "key") out.push("- " + c[0] + ": " + v.replace(/\s*\n\s*/g, " "));
+  });
+  openChanges(r).forEach(function (c) { out.push("- open change #" + c.id + " (" + c["class"] + "): " + c.action + (c.reason ? " - " + c.reason : "")); });
+  return out.join("\n");
+}
+function copyText(text, done) {
+  function fallback() {
+    var t = document.createElement("textarea");
+    t.value = text; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;left:-9999px;top:0";
+    document.body.appendChild(t); t.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(t); done(ok);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { navigator.clipboard.writeText(text).then(function () { done(true); }, fallback); } catch (e) { fallback(); }
+  } else fallback();
+}
+function copyButton(getText) {
+  var b = el("button", "", "Copy for AI"), timer = null;
+  b.type = "button";
+  b.addEventListener("click", function () {
+    copyText(getText(), function (ok) {
+      b.textContent = ok ? "Copied" : "Copy failed";
+      clearTimeout(timer);
+      timer = setTimeout(function () { b.textContent = "Copy for AI"; }, 1500);
+    });
+  });
+  return b;
+}
+function cell(r, c) {
+  var td = el("td", c[3] || ""), v = val(r, c), ic = c[2] ? icon(c[2], v) : null;
+  if (ic) td.appendChild(ic);
+  td.appendChild(document.createTextNode(v));
+  if (c[2] === "health" || c[2] === "change_class") td.className += " " + (HEALTH[v] || "");
+  return td;
+}
+var who = "";
+function remember(name) {
+  if (name) who = name;
+  try { if (name) localStorage.setItem("theindex.by", name); else if (!who) who = localStorage.getItem("theindex.by") || ""; } catch (e) {}
+  return who;
+}
+function removeRow(s, r, row) {
+  row.remove();
+  s.trs.splice(s.trs.indexOf(row), 1); s.rows.splice(s.rows.indexOf(r), 1);
+  filter();
+}
+function sendReview(s, r, box) {
+  var by = remember(), msg = el("span", "bad");
+  fetch("/api/review", { method: "POST", headers: { "Content-Type": "application/json", "X-The-Index-Token": D.token },
+    body: JSON.stringify({ change_id: r.id, by: by }) })
+    .then(function (res) { return res.json(); })
+    .then(function (j) { if (j.ok) { removeRow(s, r, box.closest("tr")); } else { msg.textContent = " " + j.error; box.appendChild(msg); } })
+    .catch(function () { msg.textContent = " failed"; box.appendChild(msg); });
+}
+function reviewControl(s, r) {
+  var box = el("span", "rv"), b = el("button", "", "Mark reviewed");
+  b.addEventListener("click", function () {
+    if (remember()) { b.disabled = true; sendReview(s, r, box); return; }
+    var inp = el("input"); inp.placeholder = "your name"; inp.setAttribute("aria-label", "your name");
+    b.hidden = true; box.appendChild(inp); inp.focus();
+    inp.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" || !inp.value.trim()) return;
+      var name = inp.value.trim(); remember(name); inp.remove(); b.hidden = false; b.disabled = true; sendReview(s, r, box);
+    });
+  });
+  box.appendChild(b);
+  return box;
+}
+function build(s) {
+  var sec = el("section"), head = el("div", "sh"), wrap = el("div", "wrap"), t = el("table");
+  sec.id = s.id;
+  var ic = icon("item_kind", s.kind);
+  var h = el("h2"); if (ic) h.appendChild(ic); h.appendChild(document.createTextNode(s.title));
+  var cnt = el("span", "mute", "(" + s.rows.length + ")");
+  head.appendChild(h); head.appendChild(cnt);
+  if (s.rows.length) head.appendChild(copyButton(function () {
+    return s.rows.map(function (r) { return mdBlock(s, r); }).join("\n\n");
+  }));
+  sec.appendChild(head);
+  if (!s.rows.length) { sec.appendChild(el("div", "empty mute", "Nothing yet.")); s.empty = true; return sec; }
+  var tr = el("tr");
+  s.cols.forEach(function (c) { tr.appendChild(el("th", "", c[0])); });
+  tr.appendChild(el("th", "", ""));
+  t.appendChild(el("thead")).appendChild(tr);
+  var tb = el("tbody");
+  s.trs = s.rows.map(function (r) {
+    var row = el("tr"), text = [];
+    s.cols.forEach(function (c) { row.appendChild(cell(r, c)); text.push(val(r, c)); });
+    var last = el("td", "nw"); last.appendChild(copyButton(function () { return mdBlock(s, r); }));
+    if (D.served && s.id === "changes") last.insertBefore(reviewControl(s, r), last.firstChild);
+    row.appendChild(last);
+    row.setAttribute("data-t", text.join("\n").toLowerCase());
+    tb.appendChild(row);
+    return row;
+  });
+  t.appendChild(tb); wrap.appendChild(t); sec.appendChild(wrap);
+  if (s.more) sec.appendChild(el("div", "mute", s.more + " more folders: use `the-index search`"));
+  s.cnt = cnt; s.sec = sec;
+  return sec;
+}
+function front() {
+  var f = M.front, box = document.getElementById("facts");
+  document.getElementById("last").textContent = "Last run " + (f.last_run || "never") + ", last OK run " + (f.last_ok_run || "never") + ".";
+  FACTS.forEach(function (x) {
+    var n = f[x[0]] || 0, d = el("div", "fact" + (x[2] && n ? " " + x[2] : ""));
+    d.appendChild(el("span", "", x[1])); d.appendChild(el("b", "", n));
+    box.appendChild(d);
+  });
+}
+function bytes(n) {
+  var u = ["B", "KB", "MB", "GB", "TB"], i = 0;
+  n = Number(n) || 0;
+  while (n >= 1024 && i < 4) { n /= 1024; i++; }
+  return (i ? n.toFixed(1) : n) + " " + u[i];
+}
+function topList(title, rows, text) {
+  if (!rows || !rows.length) return;
+  var box = el("section"), ul = el("ul");
+  box.appendChild(el("h2", "", title));
+  rows.forEach(function (r) { ul.appendChild(el("li", "", text(r))); });
+  box.appendChild(ul);
+  document.getElementById("secs").parentNode.insertBefore(box, document.getElementById("secs"));
+}
+function lists() {
+  topList("Projects", M.projects, function (r) { return r.device + ":" + r.path + "  " + r.agent_files.join(", ") + "  " + bytes(r.size_total); });
+  topList("Largest folders", M.largest, function (r) { return r.device + ":" + r.path + "  " + bytes(r.size_total); });
+}
+function nav() {
+  var n = document.getElementById("nav");
+  SECTIONS.forEach(function (s) {
+    if (s.id === "collisions" && !s.rows.length) return;
+    var a = el("a", "", s.nav);
+    a.href = "#" + s.id; s.link = a;
+    n.appendChild(a); n.appendChild(document.createTextNode(" "));
+    s.navCount = el("span", "mute", " " + s.rows.length); a.appendChild(s.navCount);
+  });
+}
+function filter() {
+  var q = document.getElementById("q").value.trim().toLowerCase(), total = 0;
+  SECTIONS.forEach(function (s) {
+    var shown = 0;
+    (s.trs || []).forEach(function (tr) {
+      var on = !q || tr.getAttribute("data-t").indexOf(q) !== -1;
+      tr.hidden = !on; if (on) shown++;
+    });
+    total += shown;
+    if (s.cnt) s.cnt.textContent = q ? "(" + shown + " of " + s.rows.length + ")" : "(" + s.rows.length + ")";
+    if (s.navCount) s.navCount.textContent = " " + (q ? shown : s.rows.length);
+    var node = document.getElementById(s.id);
+    if (node) node.hidden = !!(q && !shown);
+  });
+  document.getElementById("hits").textContent = q ? total + " matching rows" : "";
+}
+front(); lists(); nav();
+if (D.served) {
+  var foot = document.getElementById("foot");
+  foot.appendChild(document.createTextNode("Docs: "));
+  ["AI_GUIDE", "CONFIG", "DESIGN"].forEach(function (n) {
+    var a = el("a", "", n.replace("_", " ").toLowerCase()); a.href = "/docs/" + n + ".md?t=" + encodeURIComponent(D.token);
+    foot.appendChild(a); foot.appendChild(document.createTextNode(" "));
+  });
+}
+var secs = document.getElementById("secs");
+SECTIONS.forEach(function (s) {
+  if (s.id === "collisions" && !s.rows.length) return;
+  secs.appendChild(build(s));
+});
+document.getElementById("q").addEventListener("input", filter);
+/*THE_INDEX_FINDER*/
+theIndexFinder(D);
+})();
+</script>
+</body>
+</html>

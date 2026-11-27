@@ -1,0 +1,10 @@
+# path_glob | criticality | description | used_by | expected_state
+# criticality: irreplaceable, rebuildable, scratch. expected_state (containers): running, stopped, any.
+/srv/photos*        | irreplaceable | Family photo library          | alice        |
+/srv/media/movies*  | rebuildable   | Ripped films, can re-rip      | media server |
+/var/lib/app-db*    | irreplaceable | Application database volume   | app          | running
+/tmp*               | scratch       | Temporary files               | everyone     |
+container:web*      | rebuildable   | Web front end                 | everyone     | running
+
+[host-b]
+/data/archive*      | irreplaceable | Only on host-b                | alice        |

@@ -1,0 +1,26 @@
+{
+ "schema_version": 1,
+ "files_requested": 1000000,
+ "machine": {
+  "os": "Linux",
+  "release": "7.0.0-44-generic",
+  "cpus": 10,
+  "python": "3.14.4",
+  "sqlite": "3.46.1"
+ },
+ "make_tree_s": 39.094,
+ "files": 1000000,
+ "folders": 49000,
+ "reference_walk_s": 4.041,
+ "first_scan_s": 68.64,
+ "titles_read": 20000,
+ "rescan_unchanged_s": 3.912,
+ "changed_folders": 489,
+ "rescan_1pct_s": 3.352,
+ "find_inproc_p50_ms": 121.11,
+ "find_inproc_p95_ms": 137.28,
+ "find_cli_p50_ms": 215.5,
+ "find_cli_p95_ms": 232.1,
+ "db_bytes_per_file": 191.9,
+ "peak_rss_mb": 93.0
+}

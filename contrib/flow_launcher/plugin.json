@@ -1,0 +1,12 @@
+{
+  "ID": "5265D5750A3D4B1492A64DCD9B118761",
+  "ActionKeyword": "ix",
+  "Name": "THE INDEX",
+  "Description": "Find folders and documents by name, title or path",
+  "Author": "THE INDEX contributors",
+  "Version": "0.1.0",
+  "Language": "python",
+  "Website": "",
+  "IcoPath": "icon.png",
+  "ExecuteFileName": "main.py"
+}
