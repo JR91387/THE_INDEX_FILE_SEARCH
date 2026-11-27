@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Command line: the-index {init, scan, collect, ingest, schedule, status, pages, declare, review, search, serve, mcp}. See `the-index <command> -h`."""
+"""Command line: the-index {init, scan, watch, collect, ingest, schedule, status, pages, declare, review, search, serve, mcp}. See `the-index <command> -h`."""
 import json
 import sqlite3
 import sys
@@ -10,8 +10,8 @@ from . import cli_catalog, cli_find, cli_fleet, config, db
 from .cli_parser import Parser
 from .lazy import Lazy, command
 
-declare, pages, report, scan, schedule, search = (Lazy(f".{n}") for n in
-                                                 ("declare", "pages", "report", "scan", "schedule", "search"))
+declare, pages, report, scan, schedule, search, watch = (Lazy(f".{n}") for n in
+                                                        ("declare", "pages", "report", "scan", "schedule", "search", "watch"))
 model, serve = Lazy(".pages.model"), Lazy(".pages.serve")
 
 
@@ -135,6 +135,9 @@ def _all_parsers(sub):
     sch.add_argument("--role", choices=["hub", "member"], help="what to schedule (default: [inbox] role in the config)")
     sch.add_argument("--remove", action="store_true", help="stop and delete the schedule")
     sch.add_argument("--print", action="store_true", help="show what would be installed; change nothing")
+    sch.add_argument("--watch", action="store_true", help="also run `watch` as a user service ([watch] enabled)")
+    wat = sub.add_parser("watch", help="keep the file index current from the OS change feed (prints nothing)")
+    wat.add_argument("--debounce", type=float, help="seconds of quiet before listing (default: [watch] debounce_s)")
     sub.add_parser("status", help="print the front page")
     pg = sub.add_parser("pages", help="write the Markdown pages and the_index.html")
     pg.add_argument("--out", help="output directory (default: pages_dir from config)")
@@ -170,7 +173,7 @@ def _all_parsers(sub):
 
 COMMANDS = {"init": cmd_init, "scan": command(scan, "cmd_scan"), "schedule": command(schedule, "cmd_schedule"), "status": cmd_status,
             "pages": cmd_pages, "declare": cmd_declare, "review": cmd_review, "search": cmd_search,
-            "changes": cmd_changes, "serve": cmd_serve, "mcp": cmd_mcp, "bench": cmd_bench, **cli_find.COMMANDS, **cli_catalog.COMMANDS,
+            "changes": cmd_changes, "serve": cmd_serve, "mcp": cmd_mcp, "bench": cmd_bench, "watch": command(watch, "cmd_watch"), **cli_find.COMMANDS, **cli_catalog.COMMANDS,
             **cli_fleet.COMMANDS}
 
 

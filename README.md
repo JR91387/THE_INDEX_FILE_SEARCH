@@ -26,6 +26,7 @@ the-index schedule        # run the scan daily in the background (systemd/cron, 
 the-index status          # prints the front page
 the-index search disk     # ranked search; add --json for scripts and AI tools
 the-index find tax return # folders and documents by name, title or tag
+the-index watch           # optional: keep the index current as files change (quiet, low priority)
 the-index serve           # review page on 127.0.0.1: open the printed link (Ctrl+C stops)
 ```
 `schedule` writes `the-index.service` and `.timer` under `~/.config/systemd/user/` (daily, low CPU and disk

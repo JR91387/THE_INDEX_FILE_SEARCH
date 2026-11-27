@@ -138,11 +138,31 @@ patches in `patches/vendor/`).
 
 ## Live updates
 `the-index watch` (off unless `[watch] enabled = true` or started by hand) listens to the OS change feed:
-inotify on Linux, FSEvents on macOS, `ReadDirectoryChangesW` on Windows (the USN change journal when run as admin).
-Events are debounced (`debounce_s`) into a set of changed directories; each is listed alone (header `targeted`,
-which retires only inside the listed directories) through the normal ingest, then titles and front matter for
-changed documents. A full event queue, or too few inotify watches, marks the next scan as a full walk and opens one
-gap. It prints nothing and runs at low priority; the scheduled scan stays the safety net.
+inotify on Linux (one watch per folder, via ctypes), FSEvents on macOS (one recursive stream), and
+`ReadDirectoryChangesW` on Windows (one handle per root, subtree). The macOS and Windows backends are unverified on
+a real host (tested with recorded event bytes and mocked ctypes).
+- **Debounce.** Events become a set of changed folders. A flush runs when no event came for `debounce_s`
+  (default 2), or at the latest every 10 x `debounce_s` under constant churn.
+- **Targeted listing.** A flush lists exactly those folders through the normal collector and ingest (header
+  `targeted`, recorded as a `watch` run, so `full_every` counts only real walks). New subfolders are listed with
+  their subtree and get their own watch, then are listed once more (they may have changed before the watch
+  existed). Retirement happens only inside the listed folders: missing files, vanished child folders and their
+  subtrees. Totals are rolled up again. Then titles and front matter for changed documents (at most 500 a flush).
+- **Scan lock.** Each flush takes the scan lock; while a scan holds it, the folders stay queued and the flush is
+  tried again one debounce later.
+- **Lost events.** An OS queue overflow (inotify `IN_Q_OVERFLOW`, FSEvents dropped/must-scan, a zero-byte
+  `ReadDirectoryChangesW`), more than 20 000 folders pending, or an incomplete listing sets the setting
+  `filetree_full_next`: the next scan walks everything and clears it. A `budget` gap (`watch: events`) stays open
+  until then.
+- **Watch budget (Linux).** At most min(limit - 1024, 90 % of `max_user_watches`) watches; past that the most
+  recently changed folders (`dir.mtime_ns`) are watched first and one `budget` gap (`watch: folders`) says how
+  many are not. The scheduled scan covers the rest. The folder list comes from the database (run a scan first)
+  and is re-read every hour.
+- **Quiet.** Prints nothing; an error is one line on stderr. `os.nice(10)`; `schedule --watch` installs a user
+  service at `Nice=19`, idle I/O (systemd `the-index-watch.service`, LaunchAgent `io.the-index.watch` with
+  KeepAlive, Task Scheduler "THE INDEX watch" at logon). Memory is bounded by the pending cap and the watch budget.
+- **Latency.** On a temp tree with `debounce_s = 0.3`: about 0.35 s from file creation to visible in `find`
+  (median of 10, `tests/test_watch.py`).
 
 ## Performance
 Targets, method and measured results are in `docs/PERFORMANCE.md`; `the-index bench` reproduces them on any machine.

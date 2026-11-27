@@ -26,14 +26,19 @@ def unit_name(args):
     return NAMES[role_of(args)]
 
 
-def scan_argv(args):
-    """The command line the timer runs: this Python, `-m theindex`, any --config/--db given now."""
+def base_argv(args):
+    """This Python, `-m theindex`, any --config/--db given now."""
     argv = [sys.executable, "-m", "theindex"]
     for flag in ("config", "db"):
         value = getattr(args, flag, None)
         if value:
             argv += [f"--{flag}", str(Path(value).expanduser().resolve())]
-    return argv + (["collect"] if role_of(args) == "member" else ["scan", "--quiet"])
+    return argv
+
+
+def scan_argv(args):
+    """The command line the timer runs."""
+    return base_argv(args) + (["collect"] if role_of(args) == "member" else ["scan", "--quiet"])
 
 
 def package_path():
@@ -133,8 +138,17 @@ def print_linux(args):
 
 
 def cmd_schedule(cfg, args):
-    """Dispatch on the OS. Role: --role, else `[inbox] role` from the config (default hub)."""
+    """Dispatch on the OS. Role: --role, else `[inbox] role` from the config (default hub). With --watch or
+    `[watch] enabled`, also the watch service (schedule_watch.py); --remove removes it when its file is there."""
     args.role = args.role or cfg.inbox_role
+    rc = _dispatch(args)
+    if getattr(args, "watch", False) or cfg.watch.get("enabled") or (args.remove and sys.platform != "win32"):
+        from . import schedule_watch
+        schedule_watch.apply(args)
+    return rc
+
+
+def _dispatch(args):
     if sys.platform == "darwin":
         from . import schedule_mac as target
     elif sys.platform == "win32":

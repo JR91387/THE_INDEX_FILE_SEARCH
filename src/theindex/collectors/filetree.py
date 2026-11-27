@@ -11,6 +11,7 @@ import socket
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import filetree_target as target
 import filetree_walk as walk
 
 OS_NAMES = {"win32": "windows", "darwin": "darwin"}
@@ -46,7 +47,8 @@ def parse_args(argv):
 def header(opts):
     return {"t": "header", "collector": "filetree", "script": "filetree.py", "host": socket.gethostname(),
             "os": OS_NAMES.get(sys.platform, "linux"), "case_insensitive": walk.case_insensitive(),
-            "full": bool(opts.get("full")), "roots": list(opts.get("roots", [])), "started_at": walk.utc()}
+            "full": bool(opts.get("full")), "roots": list(opts.get("roots", [])), "started_at": walk.utc(),
+            "targeted": bool(opts.get("targets") or opts.get("targets_file"))}
 
 
 def main(argv):
@@ -55,8 +57,9 @@ def main(argv):
         opts, state_file = parse_args(argv)
     except (ValueError, TypeError) as err:
         errors.append(f"bad options: {err}")
-    emit(header(opts))
-    walker = walk.Walker(opts, load_state(state_file), emit)
+    head = header(opts)
+    emit(head)
+    walker = (target.Targeted if head["targeted"] else walk.Walker)(opts, load_state(state_file), emit)
     try:
         walker.run()
     except Exception as err:  # noqa: BLE001 -- always print a trailer; an error makes the run partial

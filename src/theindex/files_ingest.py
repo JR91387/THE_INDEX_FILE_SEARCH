@@ -7,7 +7,7 @@ anything seen again is revived. Totals roll up deepest first. One transaction pe
 import json
 import unicodedata
 
-from . import files_bulk, gaps, ingest
+from . import files_bulk, files_target, gaps, ingest
 
 
 class Loader:
@@ -16,6 +16,7 @@ class Loader:
         self.dirs = {k: (i, r) for i, k, r in conn.execute(
             "SELECT id, path_key, retired_run FROM dir WHERE device_id = ?", (ctx["device_id"],))}
         self.seen, self.gaps, self.unseen_files = set(), [], []
+        self.listed, self.gone = set(), []   # targeted runs: dirs listed, targets reported gone
         self.files = {}           # name -> (id, retired_run) for the dir being listed
         self.counts = {"dirs": 0, "files": 0}
         self.current = None
@@ -54,6 +55,7 @@ class Loader:
         """A listed dir: its stored files become candidates for retirement until seen in this stream."""
         self.close_dir()
         self.current = self.dir_row(rec, listed=True)
+        self.listed.add(self.current)
         self.files = {} if rec.get("cache") else {row[1]: row for row in self.conn.execute(
             "SELECT id, name, retired_run, size_bytes, mtime_ns, ctime_ns FROM file WHERE dir_id = ?", (self.current,))}
 
@@ -95,6 +97,8 @@ class Loader:
             self.dir_row(rec, listed=False)
         elif kind == "gap":
             self.gaps.append(rec)
+        elif kind == "gone":
+            self.gone.append(rec.get("key"))
 
     def retire(self, roots):
         """OK runs only: unseen files of listed dirs, and unseen dirs under a root but not under a gap."""
@@ -161,7 +165,9 @@ def ingest_stream(conn, lines, device_name):
 
 
 def _load(conn, header, records, device_name):
+    targeted = bool(header.get("targeted"))      # `watch`: only the listed dirs, recorded as a watch run
     collector = header.get("collector") if header.get("collector") in ("filetree", "catalog") else "filetree"
+    collector = "watch" if targeted else collector
     ctx = ingest.start_run(conn, ingest.ensure_device(conn, device_name), {**header, "collector": collector})
     loader, trailer, bulk = Loader(conn, ctx), {}, files_bulk.begin(conn, ctx["device_id"])
     for rec in records:
@@ -172,14 +178,16 @@ def _load(conn, header, records, device_name):
     status = trailer.get("status") if trailer.get("status") in ("ok", "partial") else "partial"
     errors = list(trailer.get("errors") or ([] if trailer else ["filetree: stream ended without a trailer"]))
     no_retire = bool(header.get("no_retire"))     # a native index listing: complete per root, but only the walk retires
-    if status == "ok" and not no_retire:
+    if status == "ok" and targeted:
+        files_target.retire(loader)
+    elif status == "ok" and not no_retire:
         loader.retire([root_key(r, header.get("case_insensitive")) for r in header.get("roots") or []])
     loader.close_dir()
     files_bulk.end(conn, bulk)
     store_titles(conn, ctx["run_id"], loader.titles)
     rollup(conn, ctx["device_id"])
     gaps.sync(conn, ctx, [{"kind": g["kind"], "target": g["target"], "reason": g.get("reason")}
-                          for g in loader.gaps], status == "ok" and not no_retire)
+                          for g in loader.gaps], status == "ok" and not no_retire and not targeted)
     payload = {"finished_at": trailer.get("finished_at"), "errors": errors, "items": []}
     ingest.finish_run(conn, ctx, payload, status)
     conn.execute("UPDATE scan_run SET items_seen=? WHERE id=?", (loader.counts["files"], ctx["run_id"]))

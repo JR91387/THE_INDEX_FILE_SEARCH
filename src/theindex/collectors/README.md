@@ -62,10 +62,11 @@ One JSON document per line, because a single document of a million files is too 
 
 | `t` | Fields | Meaning |
 |---|---|---|
-| `header` | `collector` (`filetree` or `catalog`), `payload_id` (inbox), `machine` (inbox), `script`, `host`, `os` (`linux`/`darwin`/`windows`), `case_insensitive`, `full`, `roots`, `started_at` | First line |
+| `header` | `collector` (`filetree` or `catalog`), `payload_id` (inbox), `machine` (inbox), `script`, `host`, `os` (`linux`/`darwin`/`windows`), `case_insensitive`, `full`, `roots`, `started_at`, `targeted` | First line |
 | `dir` | `key` (path_key), `path`, `parent` (path_key or null), `mtime_ns`, `ctime_ns`, `size`, `files`, `cache`, `agents` | Listed directory. `size`/`files` = direct files; for `cache: true`, the whole subtree |
 | `file` | `dir` (path_key), `name`, `size`, `mtime_ns`, `ctime_ns`, `inode`; optional `title`, `title_src`, `title_sig`, `meta` (object; only with `title_sig`) | Only inside listed, non-cache dirs. Title fields are sent when the title was read on the sending machine |
 | `skip` | `key`, `path`, `parent`, `mtime_ns`, `ctime_ns` | Unchanged since the state file: keep its files |
+| `gone` | `key`, `path` | Targeted runs only: a target that no longer exists (or is no longer a directory) |
 | `gap` | `kind`, `target`, `reason` | `denied`, `network` (reason = mount source, e.g. `nfs host-b:/export`), `budget`, `unreadable` |
 | `trailer` | `status`, `finished_at`, `counts`, `errors` | Last line. No trailer = the run is `partial` |
 
@@ -75,9 +76,18 @@ it never prints `skip` records; `count_only` prints just a trailer whose `counts
 Title-type files may carry `title`, `title_src: "native"`, `title_sig` (`size:mtime_ns`).
 
 Arguments: `filetree.py '<options JSON>' [--state FILE]`. Options: `roots`, `exclude`, `cache_markers`,
-`agent_markers`, `full`, `budget_s`. The state file (read-only) is TSV `path_key  mtime_ns  ctime_ns`.
+`agent_markers`, `full`, `budget_s`, `targets`, `targets_file`. The state file (read-only) is TSV `path_key  mtime_ns  ctime_ns`.
 Retirement: on an `ok` run, a directory under a root that is neither `dir` nor `skip` is retired (unless
 under a gap target); a file is retired when its directory was listed and the file was not.
+
+**Targeted runs** (`the-index watch`): options `targets` (list of directories) and/or `targets_file` (one path
+per line; a long list must go in a file, one argument is at most 128 KB on Linux). Header `targeted: true`. Each
+target is listed whatever the state file says (non-recursively); a child directory found in the state file is a
+`skip` and is not entered; a child not in it (new, or back after being retired) is listed with its whole new
+subtree. The state file holds only the known active children of the targets. `roots` stays the filetree roots:
+a target equal to a root has `parent` null, any other has its parent's key. Retirement on an `ok` targeted run is
+limited to the listed dirs: their missing files, their child dirs that were neither `dir` nor `skip`, and `gone`
+targets, each dir with its subtree (never under a gap target). The run is recorded as collector `watch`.
 
 ## `titles`: worklist in, titles out
 `titles.py --worklist FILE '<options JSON>'`: the worklist is JSON Lines `{"id": 12, "path": "/srv/data/a.pdf"}`;

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Small config tables: `[inbox]` (`dir`, `role` = hub|member) and `[sources]` (`native` = auto|off)."""
+"""Small config tables: `[inbox]` (`dir`, `role` = hub|member), `[sources]` (`native` = auto|off), `[watch]`."""
 from pathlib import Path
 
 ROLES = ("hub", "member")
@@ -45,3 +45,19 @@ def pulls(tables):
             raise ValueError("pull.command must be a command name")
         out.append({"host": host.strip(), "ssh_options": opts, "timeout_s": secs, "command": command.strip()})
     return out
+
+
+def watch(table):
+    """[watch]: enabled (bool), roots (folders; default [filetree] roots), debounce_s (0.05 to 3600)."""
+    if not isinstance(table, dict):
+        raise ValueError("[watch] must be a table")  # noqa: TRY004 (the CLI reports ValueError)
+    out = dict(table)
+    if out.get("enabled", False) not in (True, False):
+        raise ValueError("watch.enabled must be true or false")
+    roots = out.get("roots", [])
+    if not isinstance(roots, list) or not all(isinstance(r, str) and r.strip() for r in roots):
+        raise ValueError("watch.roots must be a list of folder paths")
+    secs = out.get("debounce_s", 2)
+    if isinstance(secs, bool) or not isinstance(secs, int | float) or not 0.05 <= secs <= 3600:
+        raise ValueError("watch.debounce_s must be a number from 0.05 to 3600")
+    return {**out, "debounce_s": float(secs)}

@@ -5,7 +5,8 @@ INSERT OR IGNORE INTO ref_collector (code, display, description, sort_order) VAL
  ('filetree','File tree','Directories, files and document titles',8),
  ('catalog','Catalog','Imported offline file lists',9),
  ('inbox','Inbox','Payloads taken from the shared inbox folder',10),
- ('pull','Pull','Payloads fetched from members over ssh',11);
+ ('pull','Pull','Payloads fetched from members over ssh',11),
+ ('watch','Watch','Folders listed as the OS reports changes (the-index watch)',12);
 
 INSERT OR IGNORE INTO ref_reach (code, display, description, sort_order) VALUES
  ('offline','Offline','Imported file list of a drive or backup that is not connected',5),
@@ -42,4 +43,5 @@ INSERT OR IGNORE INTO ref_title_type (code, display, description, definition, so
  ('.epub','EPUB','Package dc:title','epub',11), ('.pdf','PDF','XMP dc:title, else Info /Title','pdf',12);
 
 INSERT OR IGNORE INTO setting (key, value) VALUES
- ('filetree_full_every', '7'), ('filetree_title_budget', '20000'), ('filetree_titles', '1');
+ ('filetree_full_every', '7'), ('filetree_title_budget', '20000'), ('filetree_titles', '1'),
+ ('filetree_full_next', '');          -- non-empty (the reason) = the next filetree run walks everything

@@ -80,8 +80,10 @@ One table per member the hub fetches over ssh (`the-index pull`, and `scan` on a
 | Key | Default | Meaning |
 |---|---|---|
 | `enabled` | `false` | Run the watcher as a user service when `schedule` is installed |
-| `roots` | `[filetree] roots` | Folders to watch |
+| `roots` | `[filetree] roots` | Folders to watch (keep them inside the `[filetree]` roots) |
 | `debounce_s` | `2` | Seconds of quiet before changed folders are listed |
+
+`schedule --watch` installs the watcher even when `enabled` is false; `schedule --remove` removes it.
 
 ## Purposes and links files
 Pipe-delimited, whole-line `#` comments, optional `[device]` headers (lines before any header apply to all

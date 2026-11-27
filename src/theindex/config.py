@@ -37,7 +37,7 @@ def _defaults():
         "pages_dir": xdg("XDG_STATE_HOME", ".local/state") / "pages",
         "pages_on_scan": True, "device_name": socket.gethostname(), "device_role": None,
         "collectors": ["folders", "jobs", "containers", "filesystems", "backups", "filetree"],
-        "filetree": {}, "sources": {}, "folders": {},  # [filetree] roots, titles...; [sources] native; [folders] roots...
+        "filetree": {}, "sources": {}, "folders": {}, "watch": {},  # [filetree] roots...; [sources]; [folders]; [watch]
         "backups": [],                    # [[backups]] checks, max_age converted to max_age_s
         "pre_run_gate": None,             # command; non-zero exit = skip this run
         "blackout": [],                   # ["02:30-04:45"], local time, may wrap midnight
@@ -112,7 +112,7 @@ def _apply(cfg, data):
     cfg.backups = [backup_check(b) for b in data.get("backups", [])]
     cfg.folders = dict(data.get("folders", {}))
     cfg.filetree = _filetree(data.get("filetree", {}))
-    cfg.sources = config_inbox.sources(data.get("sources", {}))
+    cfg.sources, cfg.watch = config_inbox.sources(data.get("sources", {})), config_inbox.watch(data.get("watch", {}))
     config_inbox.apply(cfg, data.get("inbox", {}))
     cfg.pulls = config_inbox.pulls(data.get("pull", []))
 

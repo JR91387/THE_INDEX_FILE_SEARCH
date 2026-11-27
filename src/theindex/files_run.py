@@ -28,8 +28,24 @@ def options(conn, cfg, full):
             "full": full, "budget_s": s["budget_s"], "title_budget": s["title_budget"]}
 
 
+FULL_NEXT = "filetree_full_next"
+
+
+def mark_full(conn, reason):
+    """Make the next filetree run a full walk (`watch` lost events); '' clears the mark."""
+    conn.execute("INSERT INTO setting (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                 (FULL_NEXT, str(reason)[:200]))
+
+
+def full_marked(conn):
+    row = conn.execute("SELECT value FROM setting WHERE key = ?", (FULL_NEXT,)).fetchone()
+    return bool(row and row[0])
+
+
 def is_full(conn, device_name, every):
-    """Full walk when there is no OK run yet, else on every `every`-th OK run."""
+    """Full walk when there is no OK run yet, when `watch` marked one, else on every `every`-th OK run."""
+    if full_marked(conn):
+        return True
     done = conn.execute("SELECT count(*) FROM scan_run r JOIN device d ON d.id = r.device_id "
                         "JOIN ref_collector c ON c.id = r.collector_id JOIN ref_run_status s ON s.id = r.status_id "
                         "WHERE d.name = ? AND c.code = 'filetree' AND s.code = 'ok'", (device_name,)).fetchone()[0]
@@ -57,6 +73,8 @@ def run(conn, cfg, full=None):
                 files_source.verify(conn, cfg, opts, result)
             if result.get("bulk"):
                 conn.execute("VACUUM")   # a first load leaves half-full index pages: ~12 % of the file back, once
+            if full and result["status"] == "ok" and full_marked(conn):
+                mark_full(conn, "")
         if s["titles"] and result["status"] != "failed":
             result["titles"] = read_titles(conn, (result, s, tmp))
     return result
