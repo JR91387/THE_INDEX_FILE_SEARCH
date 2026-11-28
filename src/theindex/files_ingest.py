@@ -68,6 +68,8 @@ class Loader:
         ext = ("." + name.rsplit(".", 1)[1].lower()) if "." in name.strip(".") else ""
         vals = (ext, rec.get("size", 0), rec.get("mtime_ns"), rec.get("ctime_ns"), rec.get("inode"))
         known = self.files.pop(name, None)
+        if rec.get("nostat") and known:           # name seen, details unreadable: keep what was stored
+            vals = (ext, *known[3:6], None)
         if known and known[2] is None and known[3:] == vals[1:4]:
             pass                                  # unchanged and active: nothing to write
         elif known:

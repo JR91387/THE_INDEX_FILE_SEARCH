@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 """CLI behaviour at the edges: one-line errors, exit codes, declare withdraw, explicit config."""
 import contextlib
+import gc
 import io
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ from theindex import cli
 
 
 def run(*argv):
+    gc.collect()   # a connection another test left open must not warn into this stderr
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         code = cli.main(list(argv))

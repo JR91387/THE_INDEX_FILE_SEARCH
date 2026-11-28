@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 """`search`: ranked hits from search_fts, safe for any input, plain and JSON output, one-line errors."""
 import contextlib
+import gc
 import io
 import json
 from unittest import mock
@@ -19,6 +20,7 @@ class TestSearch(PagesCase):
         self.fill()
 
     def cli(self, *argv):
+        gc.collect()   # a connection another test left open must not warn into this stderr
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = cli.main(["--db", str(self.path), "search", *argv])

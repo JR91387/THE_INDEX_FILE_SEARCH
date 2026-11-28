@@ -22,7 +22,7 @@ DEFAULT_TITLE_EXTS = [".pdf", ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp",
 
 
 def emit(record):
-    sys.stdout.write(json.dumps(record, separators=(",", ":")) + "\n")
+    sys.stdout.write(walk.json_line(record) + "\n")
 
 
 def header(opts, source):

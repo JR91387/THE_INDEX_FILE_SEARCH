@@ -4,12 +4,11 @@ Imported by filetree.py (which puts this folder on sys.path). See README.md, sec
 import os
 import sys
 import time
-import unicodedata
 from collections import deque
-from datetime import UTC, datetime
 from typing import NamedTuple
 
 import filetree_net as net
+from filetree_names import case_insensitive, json_line, path_key, utc  # noqa: F401 - re-exported
 
 SKIP = ["/var/lib/docker", "/var/lib/containers", "/var/lib/snapd", "/var/cache", "/proc", "/sys", "/dev", "/run",
         "lost+found"]
@@ -23,19 +22,6 @@ class Node(NamedTuple):
     dev: int
 
 
-def utc(ts=None):
-    return datetime.fromtimestamp(time.time() if ts is None else ts, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def case_insensitive():
-    return sys.platform in ("win32", "darwin")
-
-
-def path_key(path, ci):
-    key = unicodedata.normalize("NFC", path).replace("\\", "/")
-    return key.casefold() if ci else key
-
-
 def excluded(path, patterns):
     """A pattern with a '/' is a path prefix; one without matches any folder of that name."""
     return any(path == e or path.startswith(e + "/") if "/" in e else os.path.basename(path) == e for e in patterns)
@@ -43,6 +29,14 @@ def excluded(path, patterns):
 
 def gap_kind(err):
     return "denied" if isinstance(err, PermissionError) else "unreadable"
+
+
+def file_record(dir_key, name, st):
+    """A file record; with no stat (name listed, details unreadable) it carries the name only."""
+    if st is None:
+        return {"t": "file", "dir": dir_key, "name": name, "nostat": True}
+    return {"t": "file", "dir": dir_key, "name": name, "size": st.st_size, "mtime_ns": st.st_mtime_ns,
+            "ctime_ns": st.st_ctime_ns, "inode": st.st_ino}
 
 
 class Walker:
@@ -125,8 +119,8 @@ class Walker:
                 if not entry.is_dir(follow_symlinks=False):
                     continue
                 self.queue_dir(node, entry.path, entry.stat(follow_symlinks=False))
-            except OSError:
-                continue
+            except OSError as err:          # a folder seen but not entered: keep what was stored under it
+                self.gap(gap_kind(err), node.path, "some entries could not be read")
 
     def queue_dir(self, parent, path, st):
         if excluded(path, self.skip_patterns):
@@ -150,17 +144,17 @@ class Walker:
             try:
                 if entry.is_file(follow_symlinks=False):
                     files.append((entry.name, entry.stat(follow_symlinks=False)))
-            except OSError:
-                continue
+            except OSError as err:          # name visible, details not: list it by name (see file_record)
+                files.append((entry.name, None))
+                self.gap(gap_kind(err), node.path, "some entries could not be read")
         self.counts["dirs"] += 1
         self.counts["files"] += len(files)
         self.write({"t": "dir", "key": node.key, "path": node.path, "parent": node.parent,
                     "mtime_ns": node.st.st_mtime_ns, "ctime_ns": node.st.st_ctime_ns,
-                    "size": sum(st.st_size for _, st in files), "files": len(files), "cache": False,
+                    "size": sum(st.st_size for _, st in files if st), "files": len(files), "cache": False,
                     "agents": self.agents(node, names)})
         for name, st in files:
-            self.write({"t": "file", "dir": node.key, "name": name, "size": st.st_size, "mtime_ns": st.st_mtime_ns,
-                        "ctime_ns": st.st_ctime_ns, "inode": st.st_ino})
+            self.write(file_record(node.key, name, st))
 
     def cache(self, node):
         """One dir record holding the subtree totals; the subtree itself is not listed."""

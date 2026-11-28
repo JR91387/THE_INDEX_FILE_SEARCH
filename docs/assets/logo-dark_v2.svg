@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="480"
+   height="120"
+   viewBox="0 0 480 120"
+   role="img"
+   aria-label="THE INDEX"
+   version="1.1"
+   id="svg6"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6" />
+  <title
+     id="title1">THE INDEX</title>
+  <rect
+     width="480"
+     height="120"
+     fill="#0d1117"
+     id="rect1" />
+  <g
+     transform="translate(49.7 7.5) scale(1.05)"
+     id="g5">
+    <g
+       fill="none"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+       id="g4">
+      <path
+         d="M50 22V12"
+         stroke="#5B93F5"
+         stroke-width="6"
+         id="path1" />
+      <circle
+         cx="50"
+         cy="9"
+         r="5"
+         fill="#5B93F5"
+         stroke="none"
+         id="circle1" />
+      <rect
+         x="3"
+         y="46"
+         width="8"
+         height="15"
+         rx="4"
+         fill="#E2E8F0"
+         id="rect2" />
+      <rect
+         x="89"
+         y="46"
+         width="8"
+         height="15"
+         rx="4"
+         fill="#E2E8F0"
+         id="rect3" />
+      <path
+         d="M27 22H73a15 15 0 0 1 15 15V73a15 15 0 0 1 -15 15H27a15 15 0 0 1 -15 -15V37a15 15 0 0 1 15 -15zM22 47a9 9 0 1 0 18 0a9 9 0 1 0 -18 0zM46 47a20 20 0 1 0 40 0a20 20 0 1 0 -40 0zM29 70a3 3 0 0 1 6 0v8a3 3 0 0 1 -6 0zM41 70a3 3 0 0 1 6 0v8a3 3 0 0 1 -6 0zM53 70a3 3 0 0 1 6 0v8a3 3 0 0 1 -6 0z"
+         fill="#E2E8F0"
+         fill-rule="evenodd"
+         stroke="none"
+         id="path3" />
+      <circle
+         cx="31"
+         cy="47"
+         r="6"
+         fill="#5B93F5"
+         stroke="none"
+         id="circle3" />
+      <circle
+         cx="66"
+         cy="47"
+         r="12"
+         stroke="#5B93F5"
+         stroke-width="7"
+         id="circle4" />
+      <path
+         d="M74.4 55.4L94 82"
+         stroke="#5B93F5"
+         stroke-width="9"
+         id="path4" />
+    </g>
+  </g>
+  <g
+     font-family="IBM Plex Sans"
+     id="g6">
+    <path
+       d="M 194.364,49.976 V 77 h -7.296 V 49.976 h -9.072 v -6.48 h 25.44 v 6.48 z m 34.12798,13.296 h -12.768 V 77 h -7.296 V 43.496 h 7.296 V 56.84 h 12.768 V 43.496 h 7.296 V 77 h -7.296 z M 243.18002,77 V 43.496 h 22.8 v 6.48 h -15.504 v 6.864 h 13.296 v 6.432 h -13.296 v 7.248 h 15.504 V 77 Z m 39.16802,0 v -5.808 h 4.32 V 49.304 h -4.32 v -5.808 h 15.936 v 5.808 h -4.32 v 21.888 h 4.32 V 77 Z m 32.25597,-15.84 -3.216,-6.72 h -0.144 V 77 h -6.864 V 43.496 h 7.968 l 9.168,15.84 3.216,6.72 h 0.144 v -22.56 h 6.864 V 77 h -7.968 z m 24.52804,-17.664 h 12.624 q 3.312,0 6.048,1.056 2.736,1.056 4.656,3.168 1.92,2.064 2.976,5.232 1.056,3.12 1.056,7.296 0,4.176 -1.056,7.344 -1.056,3.12 -2.976,5.232 -1.92,2.064 -4.656,3.12 -2.736,1.056 -6.048,1.056 h -12.624 z m 12.624,27.024 q 3.264,0 5.136,-1.824 1.872,-1.824 1.872,-5.856 v -5.184 q 0,-4.032 -1.872,-5.856 -1.872,-1.824 -5.136,-1.824 h -5.328 V 70.52 Z M 372.58807,77 V 43.496 h 22.8 v 6.48 h -15.504 v 6.864 h 13.296 v 6.432 h -13.296 v 7.248 h 15.504 V 77 Z m 56.97602,0 h -8.448 l -7.248,-12.336 h -0.144 L 406.66809,77 h -7.872 l 10.752,-17.328 -10.224,-16.176 h 8.496 l 6.528,11.328 h 0.144 l 6.624,-11.328 h 7.872 l -10.32,16.32 z"
+       id="text5"
+       style="font-weight:700;font-size:48px;fill:#e2e8f0"
+       aria-label="THE INDEX" />
+  </g>
+</svg>

@@ -18,7 +18,7 @@ OS_NAMES = {"win32": "windows", "darwin": "darwin"}
 
 
 def emit(record):
-    sys.stdout.write(json.dumps(record, separators=(",", ":")) + "\n")
+    sys.stdout.write(walk.json_line(record) + "\n")
 
 
 def load_state(path):
